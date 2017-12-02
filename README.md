@@ -25,5 +25,5 @@ Build:
 
 Test:
 
-* `gtest`
+* `gtest` -- already included
 
