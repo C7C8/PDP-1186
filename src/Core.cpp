@@ -49,6 +49,12 @@ const PBYTE* Core::read(PWORD loc, PWORD size) const {
 	return (const PBYTE*)&mem[loc];
 }
 
+PBYTE Core::read(PWORD loc) const {
+	if (loc >= this->size || size == 0 || loc + size >= this->size)
+		return nullptr;
+	return (PBYTE)mem[loc];
+}
+
 /**
  * Write to a location in memory
  * @param loc Location to write to
@@ -60,5 +66,18 @@ bool Core::write(PWORD loc, PBYTE *data, PWORD size) {
 	if (loc >= this->size || size == 0 || loc + size >= this->size)
 		return false;
 	memcpy(mem, data, size);
+	return true;
+}
+
+/**
+ * Write a single value to a location in memory
+ * @param loc Location to read from
+ * @param data Data to set
+ * @return Whether the write succeeded
+ */
+bool Core::write(PWORD loc, PBYTE data){
+	if (loc >= this->size || size == 0 || loc + size >= this->size)
+		return false;
+	mem[loc] = data;
 	return true;
 }
