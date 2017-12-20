@@ -40,36 +40,3 @@ TEST(processor_test, basic_ops){
 	}
 
 }
-
-TEST(processor_test, flags){
-	Processor proc;
-
-	//Value scheme: verify that overflow, negative, and zero work right
-	proc.valFlags(1<<14, 1<<14, NEG_BIT);
-	ASSERT_TRUE(proc.pstat_overf());
-	proc.valFlags(NEG_BIT, NEG_BIT, 0);
-	ASSERT_TRUE(proc.pstat_overf());
-	proc.valFlags(1<<14, 1, 1<<14 | 1);
-	ASSERT_FALSE(proc.pstat_overf());
-	proc.valFlags(NEG_BIT | (PBYTE)(1<<14), NEG_BIT | (PBYTE)(1<<14), NEG_BIT);
-	ASSERT_FALSE(proc.pstat_overf());
-
-	proc.valFlags(NEG_BIT, NEG_BIT, NEG_BIT);
-	ASSERT_TRUE(proc.pstat_neg());
-	ASSERT_FALSE(proc.pstat_zero());
-
-	proc.valFlags(0, 0, 0);
-	ASSERT_TRUE(proc.pstat_zero());
-	ASSERT_FALSE(proc.pstat_neg());
-
-	//Bit scheme: verify that negative and zero work right, but overflow is cleared
-	proc.bitFlags(NEG_BIT, NEG_BIT, NEG_BIT);
-	ASSERT_TRUE(proc.pstat_neg());
-	ASSERT_FALSE(proc.pstat_zero());
-	ASSERT_FALSE(proc.pstat_overf());
-
-	proc.bitFlags(0, 0, 0);
-	ASSERT_TRUE(proc.pstat_zero());
-	ASSERT_FALSE(proc.pstat_neg());
-	ASSERT_FALSE(proc.pstat_overf());
-}

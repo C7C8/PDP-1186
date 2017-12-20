@@ -1,6 +1,5 @@
 #pragma once
 #include "defs.h"
-#include "gtest/gtest_prod.h"
 
 #define 	REGCOUNT	8
 #define		SC			(PWORD)1
@@ -122,7 +121,6 @@ public:
 	void scc();
 
 private:
-	FRIEND_TEST(processor_test, flags);
 	void valFlags(PWORD o1, PWORD o2, PWORD res);
 	void bitFlags(PWORD o1, PWORD o2, PWORD res);
 
