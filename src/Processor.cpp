@@ -196,7 +196,7 @@ void Processor::adc(PWORD *o1) {
 void Processor::sbc(PWORD *o1) {
 	PWORD prev = *o1;
 	if (pstat_carry())
-		(*o1);
+		(*o1)--;
 	valFlags(prev, prev, *o1);
 }
 
@@ -215,7 +215,7 @@ void Processor::tst(PWORD *o1) {
  */
 void Processor::neg(PWORD *o1) {
 	PWORD prev = *o1;
-	*o1 ^= NEG_BIT;
+	*o1 = ~*o1 + (PWORD)1;
 	valFlags(prev, prev, *o1);
 	*o1 == 0 ? clc() : sec();
 }
@@ -250,7 +250,7 @@ void Processor::ror(PWORD *o1) {
 void Processor::rol(PWORD *o1) {
 	PWORD msd = *o1 & NEG_BIT;
 	*o1 <<= 1;
-	*o1 &= msd>>15;
+	*o1 |= msd>>15;
 	*o1 == 0 ? sez() : clz();
 	*o1 & NEG_BIT ? sen() : cln();
 	sec(); //TODO spec unclear, determine how C should be set
@@ -265,7 +265,7 @@ void Processor::rol(PWORD *o1) {
  */
 void Processor::asr(PWORD *o1) {
 	*o1 & 1 ? sec() : clc();
-	*o1 >>= 1;
+	*o1 = (*o1 >> 1) | (*o1 & NEG_BIT); //Not sure why I can't use >>=1
 	*o1 == 0 ? sez() : clz();
 	*o1 & NEG_BIT ? sen() : cln();
 	pstat_neg() ^ pstat_carry() ? sev() : clv();
@@ -291,7 +291,7 @@ void Processor::swab(PWORD *o1) {
 	clc();
 	clv();
 	(*o1 & (PWORD)0x00FF) == 0 ? sez() : clz();
-	(*o1 & (PWORD)0xFF00) & NEG_BIT ? sen() : cln();
+	*o1 & NEG_BIT>>8 ? sen() : cln();
 }
 
 /**
@@ -458,28 +458,28 @@ void Processor::spl(PWORD *lvl) {
  * Clear the carry flag;
  */
 void Processor::clc() {
-	ps = (ps & (PWORD)~SC);
+	ps &= ~SC;
 }
 
 /**
  * Clear the overflow flag
  */
 void Processor::clv() {
-	ps = (ps & (PWORD)~SV);
+	ps &= ~SV;
 }
 
 /**
  * Clear the zero flag
  */
 void Processor::clz() {
-	ps = (ps & (PWORD)~SZ);
+	ps &= ~SZ;
 }
 
 /**
  * Clear the negative flag
  */
 void Processor::cln() {
-	ps = (ps & (PWORD)~SN);
+	ps &= ~SN;
 }
 
 /**

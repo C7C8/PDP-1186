@@ -3,10 +3,10 @@
 
 #define 	REGCOUNT	8
 #define		SC			(PWORD)1
-#define		SV			(PWORD)1<<1
-#define		SZ			(PWORD)1<<2
-#define		SN			(PWORD)1<<3
-#define		ST			(PWORD)1<<4
+#define		SV			(PWORD)(1<<1)
+#define		SZ			(PWORD)(1<<2)
+#define		SN			(PWORD)(1<<3)
+#define		ST			(PWORD)(1<<4)
 
 //r7 reserved for use as program counter, r6 reserved for stack pointer
 enum RegCode {R0 = 0, R1, R2, R3, R4, R5, R6, R7, SP=R6, PC = R7};
