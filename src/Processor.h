@@ -1,12 +1,13 @@
 #pragma once
 #include "defs.h"
+#include "gtest/gtest_prod.h"
 
 #define 	REGCOUNT	8
-#define		SC			1
-#define		SV			1<<1
-#define		SZ			1<<2
-#define		SN			1<<3
-#define		ST			1<<4
+#define		SC			(PWORD)1
+#define		SV			(PWORD)1<<1
+#define		SZ			(PWORD)1<<2
+#define		SN			(PWORD)1<<3
+#define		ST			(PWORD)1<<4
 
 //r7 reserved for use as program counter, r6 reserved for stack pointer
 enum RegCode {R0 = 0, R1, R2, R3, R4, R5, R6, R7, SP=R6, PC = R7};
@@ -40,6 +41,11 @@ public:
 	void wait();
 	void reset();
 	void nop();
+
+	/*
+	 * Note that from here on out, everything here will expect *pointers* to memory locations to be provided. Therefore,
+	 * addressing modes need to be handled by the *calling* entity. This is done to avoid excessive code duplication.
+	 */
 
 	//One-operand instructions
 	void clr(PWORD* o1);
@@ -115,13 +121,14 @@ public:
 	void ccc();
 	void scc();
 
-
 private:
+	FRIEND_TEST(processor_test, flags);
+	void valFlags(PWORD o1, PWORD o2, PWORD res);
+	void bitFlags(PWORD o1, PWORD o2, PWORD res);
+
 	PWORD registers[REGCOUNT];
 	PWORD ps;
-	PWORD addrMode; //Used to make operation executions somewhat easier
 	bool halted;
-
 	PBYTE* core;
 	int coreSize;
 };
