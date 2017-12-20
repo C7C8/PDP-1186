@@ -1,3 +1,4 @@
+#include <cstring>
 #include "Processor.h"
 
 /**
@@ -7,19 +8,8 @@ Processor::Processor(){
 	for (int i = 0; i < REGCOUNT; i++)
 		registers[i] = 0;
 	ps = 0;
-	core = new Core(1<<15);
-	halted = false;
-}
-
-/**
- * Create new CPU object with supplied memory device
- * @param core
- */
-Processor::Processor(Core* core) {
-	for (int i = 0; i < REGCOUNT; i++)
-		registers[i] = 0;
-	ps = 0;
-	this->core = core;
+	core = new PBYTE[1<<15];
+	coreSize = 1<<15;
 	halted = false;
 }
 
@@ -31,7 +21,9 @@ Processor::Processor(const Processor& cpu){
 	for (int i = 0; i < REGCOUNT; i++)
 		registers[i] = cpu.registers[i];
 	ps = cpu.ps;
-	core = new Core(*cpu.core);
+	core = new PBYTE[cpu.coreSize];
+	memcpy(core, cpu.core, (size_t)cpu.coreSize);
+	coreSize = cpu.coreSize;
 	halted = false;
 }
 
@@ -43,7 +35,9 @@ void Processor::operator=(const Processor& cpu){
 	for (int i = 0; i < REGCOUNT; i++)
 		registers[i] = cpu.registers[i];
 	ps = cpu.ps;
-	core = new Core(*cpu.core);
+	core = new PBYTE[cpu.coreSize];
+	memcpy(core, cpu.core, (size_t)cpu.coreSize);
+	coreSize = cpu.coreSize;
 	halted = false;
 }
 
@@ -157,282 +151,3 @@ void Processor::reset() {
 void Processor::nop() {
 }
 
-/**
- * Set to zero. Clears NVC, sets Z
- * @param o1 Address/register to zero
- */
-void Processor::clr(PWORD o1) {
-	core->write(o1, 0);
-}
-
-/**
- * Increment by one.
- * @param o1 Address/register to increment
- */
-void Processor::inc(PWORD o1) {
-	core->write(o1, core->read(o1) + 1);
-}
-
-/**
- * Decrement by one.
- * @param o1 Address/register to decrement
- */
-void Processor::dec(PWORD o1) {
-	core->write(o1, core->read(o1) - 1);
-}
-
-/**
- * Add one if carry flag set
- * @param o1 Address/register to operate on
- */
-void Processor::adc(PWORD o1) {
-	core->write(o1, core->read(o1) + pstat_carry() ? 1 : 0);
-}
-
-/**
- * Subtract one if carry flag set
- * @param o1 Address/register to operate on
- */
-void Processor::sbc(PWORD o1) {
-	core->write(o1, core->read(o1) - pstat_carry() ? 1 : 0);
-}
-
-/**
- * Set condition codes NZ using input, clears VC
- * @param o1 Address/register to test
- */
-void Processor::tst(PWORD o1) {
-	ccc();
-	if (NEG_BIT & o1)
-		sen();
-	if (o1 == 0)
-		sez();
-}
-
-/**
- * Invert value at address
- * @param o1 Register/address to operate on
- */
-void Processor::neg(PWORD o1) {
-
-}
-
-void Processor::com(PWORD o1) {
-
-}
-
-void Processor::ror(PWORD o1) {
-
-}
-
-void Processor::rol(PWORD o1) {
-
-}
-
-void Processor::asr(PWORD o1) {
-
-}
-
-void Processor::asl(PWORD o1) {
-
-}
-
-void Processor::swab(PWORD o1) {
-
-}
-
-void Processor::sxt(PWORD o1) {
-
-}
-
-void Processor::mul(PWORD o1, PWORD o2) {
-
-}
-
-void Processor::div(PWORD o1, PWORD o2) {
-
-}
-
-void Processor::ash(PWORD o1, PWORD o2) {
-
-}
-
-void Processor::ashc(PWORD o1, PWORD o2) {
-
-}
-
-void Processor::kxor(PWORD o1, PWORD o2) {
-
-}
-
-void Processor::mov(PWORD o1, PWORD o2) {
-
-}
-
-void Processor::add(PWORD o1, PWORD o2) {
-
-}
-
-void Processor::sub(PWORD o1, PWORD o2) {
-
-}
-
-void Processor::cmp(PWORD o1, PWORD o2) {
-
-}
-
-void Processor::bis(PWORD o1, PWORD o2) {
-
-}
-
-void Processor::bic(PWORD o1, PWORD o2) {
-
-}
-
-void Processor::bit(PWORD o1, PWORD o2) {
-
-}
-
-void Processor::br(PWORD ost) {
-
-}
-
-void Processor::bne(PWORD ost) {
-
-}
-
-void Processor::beq(PWORD ost) {
-
-}
-
-void Processor::bpl(PWORD ost) {
-
-}
-
-void Processor::bmi(PWORD ost) {
-
-}
-
-void Processor::bvc(PWORD ost) {
-
-}
-
-void Processor::bvs(PWORD ost) {
-
-}
-
-void Processor::bhis(PWORD ost) {
-
-}
-
-void Processor::bcc(PWORD ost) {
-
-}
-
-void Processor::blo(PWORD ost) {
-
-}
-
-void Processor::bcs(PWORD ost) {
-
-}
-
-void Processor::bge(PWORD ost) {
-
-}
-
-void Processor::blt(PWORD ost) {
-
-}
-
-void Processor::bgt(PWORD ost) {
-
-}
-
-void Processor::ble(PWORD ost) {
-
-}
-
-void Processor::bhi(PWORD ost) {
-
-}
-
-void Processor::blos(PWORD ost) {
-
-}
-
-void Processor::jsr(PWORD ost) {
-
-}
-
-void Processor::rts() {
-
-}
-
-void Processor::rti() {
-
-}
-
-void Processor::trap() {
-
-}
-
-void Processor::bpt() {
-
-}
-
-void Processor::iot() {
-
-}
-
-void Processor::emt() {
-
-}
-
-void Processor::rtt() {
-
-}
-
-void Processor::spl(PWORD lvl) {
-
-}
-
-void Processor::clc() {
-
-}
-
-void Processor::clv() {
-
-}
-
-void Processor::clz() {
-
-}
-
-void Processor::cln() {
-
-}
-
-void Processor::sec() {
-
-}
-
-void Processor::sev() {
-
-}
-
-void Processor::sez() {
-
-}
-
-void Processor::sen() {
-
-}
-
-void Processor::ccc() {
-
-}
-
-void Processor::scc() {
-
-}
