@@ -29,7 +29,7 @@ set(CMAKE_CXX_STANDARD 14)
 ################################
 add_library(PDP-1186_lib ${SRC_FILES})
 set_target_properties(PDP-1186_lib PROPERTIES LINKER_LANGUAGE CXX)
-add_executable(PDP-1186 ${PROJECT_SOURCE_DIR})
+add_executable(PDP-1186 ${PROJECT_SOURCE_DIR}/src/main.cpp src/Processor.cpp src/Processor.h src/defs.h)
 # Key idea: SEPARATE OUT your main() function into its own file so it can be its
 # own executable. Separating out main() means you can add this library to be
 # used elsewhere (e.g linking to the test executable).
