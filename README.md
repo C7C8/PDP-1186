@@ -1,6 +1,6 @@
 # PDP-1186
 
-[![Build Status](https://travis-ci.org/C7C8/PDP-1186.svg?branch=master)](https://travis-ci.org/C7C8/PDP-1186)
+[![Build Status](https://travis-ci.org/C7C8/PDP-1186.svg?branch=master)](https://travis-ci.org/C7C8/PDP-1186) [![codecov](https://codecov.io/gh/C7C8/PDP-1186/branch/master/graph/badge.svg)](https://codecov.io/gh/C7C8/PDP-1186)
 
 Emulator for the PDP-11, to allow PDP-11 code to run on x86-based machines.
 Because why not?
