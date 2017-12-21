@@ -148,7 +148,7 @@ TEST(processor_test, one_arg_instructions){
 	ASSERT_FALSE(proc.pstat_carry() || proc.pstat_zero());
 
 	//asl: left shift
-	o1 = (PWORD)1;
+	o1 = 1;
 	proc.ccc();
 	proc.asl(&o1);
 	ASSERT_EQ(o1, 2);

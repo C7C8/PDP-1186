@@ -7,7 +7,7 @@ set(PROJECT_NAME PDP-1186)
 project(${PROJECT_NAME})
 include(CTest)
 
-set(CMAKE_CXX_FLAGS "-g -Wall -Wextra")
+set(CMAKE_CXX_FLAGS "-g -Wall -Wextra -m64")
 
 # If you want your own include/ directory, set this, and then you can do
 # include_directories(${COMMON_INCLUDES}) in other CMakeLists.txt files.

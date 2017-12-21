@@ -235,12 +235,15 @@ void Processor::com(PWORD *o1) {
  * Rotate value right. NZ set by result, C set (???), V=N^C
  */
 void Processor::ror(PWORD *o1) {
-	PWORD lsd = *o1 & (PWORD)1;
-	*o1 >>= 1;
-	*o1 = (*o1 & ~NEG_BIT) | (lsd << 15);
-	*o1 == 0 ? sez() : clz();
-	*o1 & NEG_BIT ? sen() : cln();
-	sec(); //TODO spec unclear, determine how C should be set
+	uint64_t flags;
+	asm("rorw $1, (%0)\n\t"
+		"pushf\n\t"
+		"popq %1"
+		: "=r" (o1), "=r" (flags)
+		: "r" (o1)
+		);
+	x86Flags(flags);
+	sec(); //What?
 	pstat_neg() ^ pstat_carry() ? sev() : clv();
 }
 
@@ -248,26 +251,31 @@ void Processor::ror(PWORD *o1) {
  * Rotate value left. NZ set by result, C set (???), V=N^C
  */
 void Processor::rol(PWORD *o1) {
-	PWORD msd = *o1 & NEG_BIT;
-	*o1 <<= 1;
-	*o1 |= msd>>15;
-	*o1 == 0 ? sez() : clz();
-	*o1 & NEG_BIT ? sen() : cln();
-	sec(); //TODO spec unclear, determine how C should be set
-	pstat_neg() ^ pstat_carry() ? sev() : clv();
+	uint64_t flags;
+	asm("rolw $1, (%0)\n\t"
+		"pushf\n\t"
+		"popq %1"
+		: "=r" (o1), "=r" (flags)
+		: "r" (o1)
+		);
+	x86Flags(flags);
+	sec(); //What?
+	pstat_neg() ^ pstat_carry() ? sev() : clv(); //The specs say that V=N^C. I happen to disagree, and so does x86. But, whatver.
 }
 
 /**
  * Arithmetic right shift. NZ set by result, C set by old low bit, V=N^C
- * @note This is PLATFORM/IMPLEMENTATION DEPENDENT CODE, or I think it is anyways.
- * This is because on x86 with GCC, the default implementation of right shift is
- * arithmetic right shift, but this might not hold for other platforms.
  */
 void Processor::asr(PWORD *o1) {
-	*o1 & 1 ? sec() : clc();
-	*o1 = (*o1 >> 1) | (*o1 & NEG_BIT); //Not sure why I can't use >>=1
-	*o1 == 0 ? sez() : clz();
-	*o1 & NEG_BIT ? sen() : cln();
+	//<<= doesn't work and I'm too lazy to figure out why
+	uint64_t flags;
+	asm("sarw $1, (%0)\n\t"
+		"pushf\n\t"
+		"popq %1"
+		: "=r" (o1), "=r" (flags)
+		: "r" (o1)
+		);
+	x86Flags(flags);
 	pstat_neg() ^ pstat_carry() ? sev() : clv();
 }
 
@@ -275,10 +283,14 @@ void Processor::asr(PWORD *o1) {
  * Left shift. NZ set by result, C set by old high bit, V=N^C
  */
 void Processor::asl(PWORD *o1) {
-	*o1 & NEG_BIT ? sec() : clc();
-	*o1 <<= 1;
-	*o1 == 0 ? sez() : clz();
-	*o1 & NEG_BIT ? sen() : cln();
+	uint64_t flags;
+	asm("salw $1, (%0)\n\t"
+		"pushf\n\t"
+		"popq %1"
+		: "=r" (o1), "=r" (flags)
+		: "r" (o1)
+		);
+	x86Flags(flags);
 	pstat_neg() ^ pstat_carry() ? sev() : clv();
 }
 
@@ -287,7 +299,14 @@ void Processor::asl(PWORD *o1) {
  */
 void Processor::swab(PWORD *o1) {
 	//TODO spec unclear, claims "CV reset, NV set by low byte". Corrected to NZ?
-	*o1 = ((*o1 & (PWORD)0xFF00) >> 8) | ((*o1 & (PWORD)0x00FF) << 8);
+	asm("movw (%0), %%ax\n\t"
+		"xchgb %%ah, %%al\n\t"
+		"movw %%ax, (%0)\n\t"
+		: "=r" (o1)
+		: "r" (o1)
+		: "%ax"
+		);
+
 	clc();
 	clv();
 	(*o1 & (PWORD)0x00FF) == 0 ? sez() : clz();
@@ -551,4 +570,15 @@ void Processor::bitFlags(PWORD o1, PWORD o2, PWORD res) {
 	res & NEG_BIT	? sen() : cln();
 	res == 0		? sez() : clz();
 	clv();
+}
+
+/**
+ * Convert an x86 processor's status word into a PDP 11's status word.
+ * @param flags x86 processor status word
+ */
+void Processor::x86Flags(uint64_t flags) {
+	flags & SC_86	?	sec() : clc();
+	flags & SV_86	?	sev() : clv();
+	flags & SZ_86	?	sez() : clz();
+	flags & SN_86	?	sen() : cln();
 }

@@ -8,6 +8,13 @@
 #define		SN			(PWORD)(1<<3)
 #define		ST			(PWORD)(1<<4)
 
+//Flags for the status word of an x86 processor, since inline asm is used in some places
+#define		SC_86		1
+#define		SV_86		(1<<11)
+#define		SZ_86		(1<<6)
+#define		SN_86		(1<<7)
+
+
 //r7 reserved for use as program counter, r6 reserved for stack pointer
 enum RegCode {R0 = 0, R1, R2, R3, R4, R5, R6, R7, SP=R6, PC = R7};
 enum AdrMode {};
@@ -121,8 +128,9 @@ public:
 	void scc();
 
 private:
-	void valFlags(PWORD o1, PWORD o2, PWORD res);
-	void bitFlags(PWORD o1, PWORD o2, PWORD res);
+	inline void valFlags(PWORD o1, PWORD o2, PWORD res);
+	inline void bitFlags(PWORD o1, PWORD o2, PWORD res);
+	inline void x86Flags(uint64_t flags);
 
 	PWORD registers[REGCOUNT];
 	PWORD ps;
