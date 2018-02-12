@@ -59,55 +59,55 @@ public:
 	void dec(PWORD* o1);
 	void adc(PWORD* o1);
 	void sbc(PWORD* o1);
-	void tst(PWORD* o1);
+	void tst(const PWORD* o1);
 	void neg(PWORD* o1);
 	void com(PWORD* o1);
-	void ror(PWORD* o1);
-	void rol(PWORD* o1);
-	void asr(PWORD* o1);
-	void asl(PWORD* o1);
-	void swab(PWORD* o1);
+	void ror(const PWORD* o1);
+	void rol(const PWORD* o1);
+	void asr(const PWORD* o1);
+	void asl(const PWORD* o1);
+	void swab(const PWORD* o1);
 	void sxt(PWORD* o1);
 
 	//One-and-a-half-operand instructions
-	void mul(RegCode reg, PWORD* o2);
-	void div(RegCode reg, PWORD* o2);
-	void ash(RegCode reg, PWORD* o2);
+	void mul(RegCode reg, const PWORD* o2);
+	void div(RegCode reg, const PWORD* o2);
+	void ash(RegCode reg, const PWORD* o2);
 	void ashc(RegCode reg, PWORD* o2);
-	void xor_(RegCode reg, PWORD* o2); //actually xor in disguise, xor is a cpp keyword
+	void xor_(RegCode reg, const PWORD* o2); //actually xor in disguise, xor is a cpp keyword
 
 	//Two-operand instructions
-	void mov(PWORD* o1, PWORD* o2);
-	void add(PWORD* o1, PWORD* o2);
-	void sub(PWORD* o1, PWORD* o2);
-	void cmp(PWORD* o1, PWORD* o2);
-	void bis(PWORD* o1, PWORD* o2);
-	void bic(PWORD* o1, PWORD* o2);
-	void bit(PWORD* o1, PWORD* o2);
+	void mov(const PWORD* o1, PWORD* o2);
+	void add(const PWORD* o1, PWORD* o2);
+	void sub(const PWORD* o1, PWORD* o2);
+	void cmp(const PWORD* o1, const PWORD* o2);
+	void bis(const PWORD* o1, PWORD* o2);
+	void bic(const PWORD* o1, PWORD* o2);
+	void bit(const PWORD* o1, const PWORD* o2);
 
 	//Branch instructions
-	void br(PWORD* ost);
-	void bne(PWORD* ost);
-	void beq(PWORD* ost);
-	void bpl(PWORD* ost);
-	void bmi(PWORD* ost);
-	void bvc(PWORD* ost);
-	void bvs(PWORD* ost);
-	void bhis(PWORD* ost);
-	void bcc(PWORD* ost);
-	void blo(PWORD* ost);
-	void bcs(PWORD* ost);
-	void bge(PWORD* ost);
-	void blt(PWORD* ost);
-	void bgt(PWORD* ost);
-	void ble(PWORD* ost);
-	void bhi(PWORD* ost);
-	void blos(PWORD* ost);
+	void br(const PWORD* ost);
+	void bne(const PWORD* ost);
+	void beq(const PWORD* ost);
+	void bpl(const PWORD* ost);
+	void bmi(const PWORD* ost);
+	void bvc(const PWORD* ost);
+	void bvs(const PWORD* ost);
+	void bhis(const PWORD* ost);
+	void bcc(const PWORD* ost);
+	void blo(const PWORD* ost);
+	void bcs(const PWORD* ost);
+	void bge(const PWORD* ost);
+	void blt(const PWORD* ost);
+	void bgt(const PWORD* ost);
+	void ble(const PWORD* ost);
+	void bhi(const PWORD* ost);
+	void blos(const PWORD* ost);
 
 	//Control transfer instructions
-	void jmp(PWORD* ost);
-	void sob(RegCode reg, PWORD* ost);
-	void jsr(RegCode reg, PWORD* ost);
+	void jmp(const PWORD* ost);
+	void sob(RegCode reg, const PWORD* ost);
+	void jsr(RegCode reg, const PWORD* ost);
 	void rts(RegCode reg);
 	void rti();
 	void trap(PWORD n);
@@ -117,7 +117,7 @@ public:
 	void rtt();
 
 	//Status word instructions
-	void spl(PBYTE* lvl);
+	void spl(const PBYTE* lvl);
 	void clc();
 	void clv();
 	void clz();

@@ -5,7 +5,7 @@
  * Create a new CPU object with all zero data. Will create a 32KB core by default.
  */
 Processor::Processor(){
-	for (int i = 0; i < REGCOUNT; i++)
+	for (int i = 0; i < REGCOUNT; i++) // NOLINT
 		registers[i] = 0;
 	ps = 0;
 	core.byte = new PBYTE[1<<15];
@@ -31,7 +31,7 @@ Processor::~Processor() {
 	delete core.byte;
 }
 
-void Processor::operator=(const Processor& cpu){
+void Processor::operator=(const Processor& cpu){ // NOLINT
 	for (int i = 0; i < REGCOUNT; i++)
 		registers[i] = cpu.registers[i];
 	ps = cpu.ps;
@@ -203,7 +203,7 @@ void Processor::sbc(PWORD *o1) {
 /**
  * Set condition codes by value.
  */
-void Processor::tst(PWORD *o1) {
+void Processor::tst(const PWORD *o1) {
 	*o1 & NEG_BIT	? sen() : cln();
 	*o1 == 0		? sez() : clz();
 	clv();
@@ -234,7 +234,7 @@ void Processor::com(PWORD *o1) {
 /**
  * Rotate value right. NZ set by result, C set (???), V=N^C
  */
-void Processor::ror(PWORD *o1) {
+void Processor::ror(const PWORD *o1) {
 	uint64_t flags;
 	asm("rorw $1, (%0)\n\t"
 		"pushf\n\t"
@@ -250,7 +250,7 @@ void Processor::ror(PWORD *o1) {
 /**
  * Rotate value left. NZ set by result, C set (???), V=N^C
  */
-void Processor::rol(PWORD *o1) {
+void Processor::rol(const PWORD *o1) {
 	uint64_t flags;
 	asm("rolw $1, (%0)\n\t"
 		"pushf\n\t"
@@ -266,7 +266,7 @@ void Processor::rol(PWORD *o1) {
 /**
  * Arithmetic right shift. NZ set by result, C set by old low bit, V=N^C
  */
-void Processor::asr(PWORD *o1) {
+void Processor::asr(const PWORD *o1) {
 	//<<= doesn't work and I'm too lazy to figure out why
 	uint64_t flags;
 	asm("sarw $1, (%0)\n\t"
@@ -282,7 +282,7 @@ void Processor::asr(PWORD *o1) {
 /**
  * Left shift. NZ set by result, C set by old high bit, V=N^C
  */
-void Processor::asl(PWORD *o1) {
+void Processor::asl(const PWORD *o1) {
 	uint64_t flags;
 	asm("salw $1, (%0)\n\t"
 		"pushf\n\t"
@@ -297,7 +297,7 @@ void Processor::asl(PWORD *o1) {
 /**
  * Swap bytes in a word. CV reset, NZ set by low byte of result.
  */
-void Processor::swab(PWORD *o1) {
+void Processor::swab(const PWORD *o1) {
 	//TODO spec unclear, claims "CV reset, NV set by low byte". Corrected to NZ?
 	asm("movw (%0), %%ax\n\t"
 		"xchgb %%ah, %%al\n\t"
@@ -325,7 +325,7 @@ void Processor::sxt(PWORD *o1) {
  * Multiply register by address
  * TODO implement spec "C set if low word overflows"
  */
-void Processor::mul(RegCode reg, PWORD *o2) {
+void Processor::mul(const RegCode reg, const PWORD *o2) {
 	registers[reg] *= *o2;
 	registers[reg] == 0			? sez() : clz();
 	registers[reg] & NEG_BIT 	? sen() : cln();
@@ -335,7 +335,7 @@ void Processor::mul(RegCode reg, PWORD *o2) {
 /**
  * Divide register by address
  */
-void Processor::div(RegCode reg, PWORD *o2) {
+void Processor::div(const RegCode reg, const PWORD *o2) {
 	if (*o2 == 0){
 		sec();
 		sev();
@@ -352,7 +352,7 @@ void Processor::div(RegCode reg, PWORD *o2) {
  * Shift register by low 6 bits of address. Shift value interpreted as signed,
  * so negative means right shift.
  */
-void Processor::ash(RegCode reg, PWORD *o2) {
+void Processor::ash(const RegCode reg, const PWORD *o2) {
 	//Convert this into something we can work with, then shift by it
 	//TODO clean, this is gross
 	PWORD prev = registers[reg];
@@ -371,14 +371,14 @@ void Processor::ash(RegCode reg, PWORD *o2) {
 /**
  * Not implemented, has absolutely no effect
  */
-void Processor::ashc(RegCode reg, PWORD *o2) {
+void Processor::ashc(const RegCode reg, PWORD *o2) {
 	//TODO Implement, whenever this instruction becomes relevant (I still don't understand the ref manual)
 }
 
 /**
  * XOR register with value
  */
-void Processor::xor_(RegCode reg, PWORD *o2) {
+void Processor::xor_(const RegCode reg, const PWORD *o2) {
 	const PWORD prev = registers[reg];
 	registers[reg] ^= *o2;
 	bitFlags(prev, *o2, registers[reg]);
@@ -389,7 +389,7 @@ void Processor::xor_(RegCode reg, PWORD *o2) {
  * @param o1 src
  * @param o2 dst
  */
-void Processor::mov(PWORD *o1, PWORD *o2) {
+void Processor::mov(const PWORD *o1, PWORD *o2) {
 	valFlags(*o1, *o2, *o1);
 	*o2 = *o1;
 	clv();
@@ -400,7 +400,7 @@ void Processor::mov(PWORD *o1, PWORD *o2) {
  * @param o1 src
  * @param o2 dst
  */
-void Processor::add(PWORD *o1, PWORD *o2) {
+void Processor::add(const PWORD *o1, PWORD *o2) {
 	valFlags(*o1, *o2, *o2 + *o1);
 	*o2 += *o1;
 }
@@ -410,8 +410,9 @@ void Processor::add(PWORD *o1, PWORD *o2) {
  * @param o1 src
  * @param o2 dst
  */
-void Processor::sub(PWORD *o1, PWORD *o2) {
+void Processor::sub(const PWORD *o1, PWORD *o2) {
 	valFlags(*o1, *o2, *o2 - *o1);
+	*o2 -= *o1;
 }
 
 /**
@@ -420,7 +421,7 @@ void Processor::sub(PWORD *o1, PWORD *o2) {
  * @param o1 src
  * @param o2 dst
  */
-void Processor::cmp(PWORD *o1, PWORD *o2) {
+void Processor::cmp(const PWORD *o1, const PWORD *o2) {
 	valFlags(*o1, *o2, *o1 - *o2);
 }
 
@@ -429,7 +430,7 @@ void Processor::cmp(PWORD *o1, PWORD *o2) {
  * @param o1 src
  * @param o2 dst
  */
-void Processor::bis(PWORD *o1, PWORD *o2) {
+void Processor::bis(const PWORD *o1, PWORD *o2) {
 	bitFlags(*o1, *o2, *o1 | *o2);
 	*o2 |= *o1;
 }
@@ -439,7 +440,7 @@ void Processor::bis(PWORD *o1, PWORD *o2) {
  * @param o1 src
  * @param o2 dst
  */
-void Processor::bic(PWORD *o1, PWORD *o2) {
+void Processor::bic(const PWORD *o1, PWORD *o2) {
 	bitFlags(*o1, *o2, *o1 & *o2);
 	*o2 &= *o1;
 }
@@ -449,7 +450,7 @@ void Processor::bic(PWORD *o1, PWORD *o2) {
  * @param o1 src
  * @param o2 dst
  */
-void Processor::bit(PWORD *o1, PWORD *o2) {
+void Processor::bit(const PWORD *o1, const PWORD *o2) {
 	bitFlags(*o1, *o2, *o1 & *o2);
 }
 
@@ -457,7 +458,7 @@ void Processor::bit(PWORD *o1, PWORD *o2) {
  * Unconditional branch
  * @param ost Offset
  */
-void Processor::br(PWORD *ost) {
+void Processor::br(const PWORD *ost) {
 	branch(*ost);
 }
 
@@ -465,7 +466,7 @@ void Processor::br(PWORD *ost) {
  * Branch on not equal
  * @param ost Offset
  */
-void Processor::bne(PWORD *ost) {
+void Processor::bne(const PWORD *ost) {
 	if (!pstat_zero())
 		branch(*ost);
 }
@@ -474,7 +475,7 @@ void Processor::bne(PWORD *ost) {
  * Brnach on equal
  * @param ost Offset
  */
-void Processor::beq(PWORD *ost) {
+void Processor::beq(const PWORD *ost) {
 	if (pstat_zero())
 		branch(*ost);
 }
@@ -483,7 +484,7 @@ void Processor::beq(PWORD *ost) {
  * Branch on positive
  * @param ost Offset
  */
-void Processor::bpl(PWORD *ost) {
+void Processor::bpl(const PWORD *ost) {
 	if (!pstat_neg())
 		branch(*ost);
 }
@@ -492,7 +493,7 @@ void Processor::bpl(PWORD *ost) {
  * Branch on negative
  * @param ost Offset
  */
-void Processor::bmi(PWORD *ost) {
+void Processor::bmi(const PWORD *ost) {
 	if (pstat_neg())
 		branch(*ost);
 }
@@ -501,7 +502,7 @@ void Processor::bmi(PWORD *ost) {
  * Branch on overflow clear
  * @param ost Offset
  */
-void Processor::bvc(PWORD *ost) {
+void Processor::bvc(const PWORD *ost) {
 	if (!pstat_overf())
 		branch(*ost);
 }
@@ -510,7 +511,7 @@ void Processor::bvc(PWORD *ost) {
  * Branch on overflow set
  * @param ost Offset
  */
-void Processor::bvs(PWORD *ost) {
+void Processor::bvs(const PWORD *ost) {
 	if (pstat_overf())
 		branch(*ost);
 }
@@ -519,7 +520,7 @@ void Processor::bvs(PWORD *ost) {
  * Branch on higher than or same as
  * @param ost Offset
  */
-void Processor::bhis(PWORD *ost) {
+void Processor::bhis(const PWORD *ost) {
 	if (!pstat_carry())
 		branch(*ost);
 }
@@ -528,7 +529,7 @@ void Processor::bhis(PWORD *ost) {
  * BGranch on carry clear
  * @param ost Offset
  */
-void Processor::bcc(PWORD *ost) {
+void Processor::bcc(const PWORD *ost) {
 	if (!pstat_carry())
 		branch(*ost);
 }
@@ -537,7 +538,7 @@ void Processor::bcc(PWORD *ost) {
  * Branch on lower
  * @param ost Offset
  */
-void Processor::blo(PWORD *ost) {
+void Processor::blo(const PWORD *ost) {
 	if (pstat_carry())
 		branch(*ost);
 }
@@ -546,7 +547,7 @@ void Processor::blo(PWORD *ost) {
  * Branch on carry set
  * @param ost Offset
  */
-void Processor::bcs(PWORD *ost) {
+void Processor::bcs(const PWORD *ost) {
 	if (pstat_carry())
 		branch(*ost);
 }
@@ -555,7 +556,7 @@ void Processor::bcs(PWORD *ost) {
  * Branch on greater than or equal to
  * @param ost Offset
  */
-void Processor::bge(PWORD *ost) {
+void Processor::bge(const PWORD *ost) {
 	if ((pstat_neg() ^ pstat_overf()) == 0)
 		branch(*ost);
 }
@@ -564,7 +565,7 @@ void Processor::bge(PWORD *ost) {
  * Branch on less than
  * @param ost Offset
  */
-void Processor::blt(PWORD *ost) {
+void Processor::blt(const PWORD *ost) {
 	if (pstat_neg() ^ pstat_overf())
 		branch(*ost);
 }
@@ -573,7 +574,7 @@ void Processor::blt(PWORD *ost) {
  * Branch on greater than
  * @param ost Offset
  */
-void Processor::bgt(PWORD *ost) {
+void Processor::bgt(const PWORD *ost) {
 	if (!(pstat_zero() || (pstat_neg() ^ pstat_overf())))
 		branch(*ost);
 }
@@ -582,7 +583,7 @@ void Processor::bgt(PWORD *ost) {
  * Branch on less than or equal to
  * @param ost Offset
  */
-void Processor::ble(PWORD *ost) {
+void Processor::ble(const PWORD *ost) {
 	if (pstat_zero() || (pstat_neg() ^ pstat_overf()))
 		branch(*ost);
 }
@@ -591,7 +592,7 @@ void Processor::ble(PWORD *ost) {
  * Branch on higher than
  * @param ost Offset
  */
-void Processor::bhi(PWORD *ost) {
+void Processor::bhi(const PWORD *ost) {
 	if (!(pstat_carry() || pstat_zero()))
 		branch(*ost);
 }
@@ -600,7 +601,7 @@ void Processor::bhi(PWORD *ost) {
  * Branch on lower than or same as
  * @param ost Offset
  */
-void Processor::blos(PWORD *ost) {
+void Processor::blos(const PWORD *ost) {
 	if (pstat_carry() || pstat_zero())
 		branch(*ost);
 }
@@ -609,7 +610,7 @@ void Processor::blos(PWORD *ost) {
  * Jump to address
  * @param ost dst
  */
-void Processor::jmp(PWORD *ost) {
+void Processor::jmp(const PWORD *ost) {
 	registers[PC] = *ost;
 }
 
@@ -618,7 +619,7 @@ void Processor::jmp(PWORD *ost) {
  * @param reg Register to subtract from
  * @param ost dst
  */
-void Processor::sob(RegCode reg, PWORD *ost) {
+void Processor::sob(const RegCode reg, const PWORD *ost) {
 	registers[reg] -= 1;
 	if (registers[reg] != 0)
 		registers[PC] = *ost;
@@ -630,7 +631,7 @@ void Processor::sob(RegCode reg, PWORD *ost) {
  * @param reg Register to swap pc value into
  * @param ost Address of subroutine
  */
-void Processor::jsr(RegCode reg, PWORD *ost) {
+void Processor::jsr(const RegCode reg, const PWORD *ost) {
 	//Push contents of reg to stack
 	registers[SP] -= 2;
 	core.byte[registers[SP]] = LOWER_W(registers[reg]);
@@ -644,7 +645,7 @@ void Processor::jsr(RegCode reg, PWORD *ost) {
 /**
  * Return from subroutine; copies contents of reg into pc and pops top of stack into reg
  */
-void Processor::rts(RegCode reg) {
+void Processor::rts(const RegCode reg) {
 	registers[PC] = reg;
 	registers[reg] = COMPOSE(core.byte[registers[SP] + 1], core.byte[registers[SP]]);
 	registers[SP] += 2;
@@ -664,7 +665,7 @@ void Processor::rti() {
  * Trap
  * @param n From
  */
-void Processor::trap(PWORD n) {
+void Processor::trap(const PWORD n) {
 	registers[PC] -= 2;
 	registers[PC] = ps;
 	registers[PC] -= 2;
@@ -677,7 +678,7 @@ void Processor::trap(PWORD n) {
  * Breakpoint trap. Used by debuggers, not sure why it's supported here, but why not.
  * Oh, by the way, it's identical to trap.
  */
-void Processor::bpt(PWORD n) {
+void Processor::bpt(const PWORD n) {
 	trap(n);
 }
 
@@ -708,7 +709,7 @@ void Processor::rtt() {
  * Set priority level. Sets bits 7-5 of the psw to lvl
  * @param lvl Level to set
  */
-void Processor::spl(PBYTE* lvl) {
+void Processor::spl(const PBYTE* lvl) {
 	ps = (*lvl << 4) | (ps * (PBYTE)0b11111);
 }
 
