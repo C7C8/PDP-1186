@@ -16,7 +16,7 @@
 
 
 //r7 reserved for use as program counter, r6 reserved for stack pointer
-enum RegCode {R0 = 0, R1, R2, R3, R4, R5, R6, R7, SP=R6, PC = R7};
+enum RegCode {R0 = 0, R1, R2, R3, R4, R5, R6, R7, SP = R6, PC = R7};
 enum AdrMode {};
 
 class Processor {
@@ -70,11 +70,11 @@ public:
 	void sxt(PWORD* o1);
 
 	//One-and-a-half-operand instructions
-	void mul(PWORD* o1, PWORD* o2);
-	void div(PWORD* o1, PWORD* o2);
-	void ash(PWORD* o1, PWORD* o2);
-	void ashc(PWORD* o1, PWORD* o2);
-	void kxor(PWORD* o1, PWORD* o2); //actually xor in disguise, xor is a cpp keyword
+	void mul(RegCode reg, PWORD* o2);
+	void div(RegCode reg, PWORD* o2);
+	void ash(RegCode reg, PWORD* o2);
+	void ashc(RegCode reg, PWORD* o2);
+	void xor_(RegCode reg, PWORD* o2); //actually xor in disguise, xor is a cpp keyword
 
 	//Two-operand instructions
 	void mov(PWORD* o1, PWORD* o2);
@@ -102,20 +102,22 @@ public:
 	void bgt(PWORD* ost);
 	void ble(PWORD* ost);
 	void bhi(PWORD* ost);
-	void blos(PWORD ost);
+	void blos(PWORD* ost);
 
 	//Control transfer instructions
-	void jsr(PWORD* ost);
-	void rts();
+	void jmp(PWORD* ost);
+	void sob(RegCode reg, PWORD* ost);
+	void jsr(RegCode reg, PWORD* ost);
+	void rts(RegCode reg);
 	void rti();
-	void trap();
-	void bpt();
+	void trap(PWORD n);
+	void bpt(PWORD n);
 	void iot();
 	void emt();
 	void rtt();
 
 	//Status word instructions
-	void spl(PWORD* lvl);
+	void spl(PBYTE* lvl);
 	void clc();
 	void clv();
 	void clz();
@@ -128,13 +130,18 @@ public:
 	void scc();
 
 private:
+	inline void branch(PWORD offset) { registers[PC] += 2* offset;} //<! Laziness.
+	inline bool overflow(PWORD o1, PWORD o2, PWORD res);
 	inline void valFlags(PWORD o1, PWORD o2, PWORD res);
 	inline void bitFlags(PWORD o1, PWORD o2, PWORD res);
 	inline void x86Flags(uint64_t flags);
 
 	PWORD registers[REGCOUNT];
-	PWORD ps;
+	PBYTE ps;
 	bool halted;
-	PBYTE* core;
-	int coreSize;
+	union {
+		PBYTE* byte;
+		PWORD* word;
+	} core;
+	int coreSizeBytes;
 };

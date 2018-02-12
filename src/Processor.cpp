@@ -8,8 +8,8 @@ Processor::Processor(){
 	for (int i = 0; i < REGCOUNT; i++)
 		registers[i] = 0;
 	ps = 0;
-	core = new PBYTE[1<<15];
-	coreSize = 1<<15;
+	core.byte = new PBYTE[1<<15];
+	coreSizeBytes = 1<<15;
 	halted = false;
 }
 
@@ -21,23 +21,23 @@ Processor::Processor(const Processor& cpu){
 	for (int i = 0; i < REGCOUNT; i++)
 		registers[i] = cpu.registers[i];
 	ps = cpu.ps;
-	core = new PBYTE[cpu.coreSize];
-	memcpy(core, cpu.core, (size_t)cpu.coreSize);
-	coreSize = cpu.coreSize;
+	core.byte = new PBYTE[cpu.coreSizeBytes];
+	memcpy(core.byte, cpu.core.byte, (size_t)cpu.coreSizeBytes);
+	coreSizeBytes = cpu.coreSizeBytes;
 	halted = false;
 }
 
 Processor::~Processor() {
-	delete core;
+	delete core.byte;
 }
 
 void Processor::operator=(const Processor& cpu){
 	for (int i = 0; i < REGCOUNT; i++)
 		registers[i] = cpu.registers[i];
 	ps = cpu.ps;
-	core = new PBYTE[cpu.coreSize];
-	memcpy(core, cpu.core, (size_t)cpu.coreSize);
-	coreSize = cpu.coreSize;
+	core.byte = new PBYTE[cpu.coreSizeBytes];
+	memcpy(core.byte, cpu.core.byte, (size_t)cpu.coreSizeBytes);
+	coreSizeBytes = cpu.coreSizeBytes;
 	halted = false;
 }
 
@@ -119,8 +119,8 @@ void Processor::priority(PWORD prty) {
 
 //
 // INSTRUCTIONS
-// Todo: Redo all addressing
-// Todo: Make sure all status flags get set as they should
+// TODO Redo all addressing
+// TODO Make sure all status flags get set as they should
 //
 
 /**
@@ -321,156 +321,395 @@ void Processor::sxt(PWORD *o1) {
 	*o1 == 0 ? sez() : clz();
 }
 
-void Processor::mul(PWORD *o1, PWORD *o2) {
+/**
+ * Multiply register by address
+ * TODO implement spec "C set if low word overflows"
+ */
+void Processor::mul(RegCode reg, PWORD *o2) {
+	registers[reg] *= *o2;
+	registers[reg] == 0			? sez() : clz();
+	registers[reg] & NEG_BIT 	? sen() : cln();
+	clv();
+}
+
+/**
+ * Divide register by address
+ */
+void Processor::div(RegCode reg, PWORD *o2) {
+	if (*o2 == 0){
+		sec();
+		sev();
+	}
+	else {
+		PWORD orig = registers[reg];
+		registers[reg] /= *o2;
+		overflow(orig, *o2, registers[reg]) ? sev() : clv();
+	}
 
 }
 
-void Processor::div(PWORD *o1, PWORD *o2) {
-
+/**
+ * Shift register by low 6 bits of address. Shift value interpreted as signed,
+ * so negative means right shift.
+ */
+void Processor::ash(RegCode reg, PWORD *o2) {
+	//Convert this into something we can work with, then shift by it
+	//TODO clean, this is gross
+	PWORD prev = registers[reg];
+	PWORD conv = (*o2 & (PWORD)0x1F) | ((*o2 & (PWORD)20) << (PWORD)10);
+	registers[reg] <<= conv;
+	if (registers[reg] & NEG_BIT != prev & NEG_BIT)
+		sev();
+	//TODO FOR THE LOVE OF CTHULHU TEST THIS
+	prev <<= (conv - (conv < 0 ? -1 : 1));
+	if (conv < 0 ? prev & 1 : (prev & NEG_BIT) != 0)
+		sec();
+	else
+		clc();
 }
 
-void Processor::ash(PWORD *o1, PWORD *o2) {
-
+/**
+ * Not implemented, has absolutely no effect
+ */
+void Processor::ashc(RegCode reg, PWORD *o2) {
+	//TODO Implement, whenever this instruction becomes relevant (I still don't understand the ref manual)
 }
 
-void Processor::ashc(PWORD *o1, PWORD *o2) {
-
+/**
+ * XOR register with value
+ */
+void Processor::xor_(RegCode reg, PWORD *o2) {
+	const PWORD prev = registers[reg];
+	registers[reg] ^= *o2;
+	bitFlags(prev, *o2, registers[reg]);
 }
 
-void Processor::kxor(PWORD *o1, PWORD *o2) {
-
-}
-
+/**
+ * Move src into dst
+ * @param o1 src
+ * @param o2 dst
+ */
 void Processor::mov(PWORD *o1, PWORD *o2) {
-
+	valFlags(*o1, *o2, *o1);
+	*o2 = *o1;
+	clv();
 }
 
+/**
+ * dst = dst + src
+ * @param o1 src
+ * @param o2 dst
+ */
 void Processor::add(PWORD *o1, PWORD *o2) {
-
+	valFlags(*o1, *o2, *o2 + *o1);
+	*o2 += *o1;
 }
 
+/**
+ * dst = dst - src;
+ * @param o1 src
+ * @param o2 dst
+ */
 void Processor::sub(PWORD *o1, PWORD *o2) {
-
+	valFlags(*o1, *o2, *o2 - *o1);
 }
 
+/**
+ * Compare; Perform src - dst but don't store the results, just alter flags
+ * @note The order of subtraction here is not the same as in sub, it's reversed!
+ * @param o1 src
+ * @param o2 dst
+ */
 void Processor::cmp(PWORD *o1, PWORD *o2) {
-
+	valFlags(*o1, *o2, *o1 - *o2);
 }
 
+/**
+ * OR; dst = dst | src
+ * @param o1 src
+ * @param o2 dst
+ */
 void Processor::bis(PWORD *o1, PWORD *o2) {
-
+	bitFlags(*o1, *o2, *o1 | *o2);
+	*o2 |= *o1;
 }
 
+/**
+ * AND; dst = dst & src
+ * @param o1 src
+ * @param o2 dst
+ */
 void Processor::bic(PWORD *o1, PWORD *o2) {
-
+	bitFlags(*o1, *o2, *o1 & *o2);
+	*o2 &= *o1;
 }
 
+/**
+ * Bit test; perform dst & src but don't store the results, just alter flags
+ * @param o1 src
+ * @param o2 dst
+ */
 void Processor::bit(PWORD *o1, PWORD *o2) {
-
+	bitFlags(*o1, *o2, *o1 & *o2);
 }
 
+/**
+ * Unconditional branch
+ * @param ost Offset
+ */
 void Processor::br(PWORD *ost) {
-
+	branch(*ost);
 }
 
+/**
+ * Branch on not equal
+ * @param ost Offset
+ */
 void Processor::bne(PWORD *ost) {
-
+	if (!pstat_zero())
+		branch(*ost);
 }
 
+/**
+ * Brnach on equal
+ * @param ost Offset
+ */
 void Processor::beq(PWORD *ost) {
-
+	if (pstat_zero())
+		branch(*ost);
 }
 
+/**
+ * Branch on positive
+ * @param ost Offset
+ */
 void Processor::bpl(PWORD *ost) {
-
+	if (!pstat_neg())
+		branch(*ost);
 }
 
+/**
+ * Branch on negative
+ * @param ost Offset
+ */
 void Processor::bmi(PWORD *ost) {
-
+	if (pstat_neg())
+		branch(*ost);
 }
 
+/**
+ * Branch on overflow clear
+ * @param ost Offset
+ */
 void Processor::bvc(PWORD *ost) {
-
+	if (!pstat_overf())
+		branch(*ost);
 }
 
+/**
+ * Branch on overflow set
+ * @param ost Offset
+ */
 void Processor::bvs(PWORD *ost) {
-
+	if (pstat_overf())
+		branch(*ost);
 }
 
+/**
+ * Branch on higher than or same as
+ * @param ost Offset
+ */
 void Processor::bhis(PWORD *ost) {
-
+	if (!pstat_carry())
+		branch(*ost);
 }
 
+/**
+ * BGranch on carry clear
+ * @param ost Offset
+ */
 void Processor::bcc(PWORD *ost) {
-
+	if (!pstat_carry())
+		branch(*ost);
 }
 
+/**
+ * Branch on lower
+ * @param ost Offset
+ */
 void Processor::blo(PWORD *ost) {
-
+	if (pstat_carry())
+		branch(*ost);
 }
 
+/**
+ * Branch on carry set
+ * @param ost Offset
+ */
 void Processor::bcs(PWORD *ost) {
-
+	if (pstat_carry())
+		branch(*ost);
 }
 
+/**
+ * Branch on greater than or equal to
+ * @param ost Offset
+ */
 void Processor::bge(PWORD *ost) {
-
+	if ((pstat_neg() ^ pstat_overf()) == 0)
+		branch(*ost);
 }
 
+/**
+ * Branch on less than
+ * @param ost Offset
+ */
 void Processor::blt(PWORD *ost) {
-
+	if (pstat_neg() ^ pstat_overf())
+		branch(*ost);
 }
 
+/**
+ * Branch on greater than
+ * @param ost Offset
+ */
 void Processor::bgt(PWORD *ost) {
-
+	if (!(pstat_zero() || (pstat_neg() ^ pstat_overf())))
+		branch(*ost);
 }
 
+/**
+ * Branch on less than or equal to
+ * @param ost Offset
+ */
 void Processor::ble(PWORD *ost) {
-
+	if (pstat_zero() || (pstat_neg() ^ pstat_overf()))
+		branch(*ost);
 }
 
+/**
+ * Branch on higher than
+ * @param ost Offset
+ */
 void Processor::bhi(PWORD *ost) {
-
+	if (!(pstat_carry() || pstat_zero()))
+		branch(*ost);
 }
 
-void Processor::blos(PWORD ost) {
-
+/**
+ * Branch on lower than or same as
+ * @param ost Offset
+ */
+void Processor::blos(PWORD *ost) {
+	if (pstat_carry() || pstat_zero())
+		branch(*ost);
 }
 
-void Processor::jsr(PWORD *ost) {
-
+/**
+ * Jump to address
+ * @param ost dst
+ */
+void Processor::jmp(PWORD *ost) {
+	registers[PC] = *ost;
 }
 
-void Processor::rts() {
-
+/**
+ * Subtract one and branch
+ * @param reg Register to subtract from
+ * @param ost dst
+ */
+void Processor::sob(RegCode reg, PWORD *ost) {
+	registers[reg] -= 1;
+	if (registers[reg] != 0)
+		registers[PC] = *ost;
 }
 
+/**
+ * Jump to subroutine; the contents of reg will be pushed to the stack and reg
+ * will take on the previous value of the pc register
+ * @param reg Register to swap pc value into
+ * @param ost Address of subroutine
+ */
+void Processor::jsr(RegCode reg, PWORD *ost) {
+	//Push contents of reg to stack
+	registers[SP] -= 2;
+	core.byte[registers[SP]] = LOWER_W(registers[reg]);
+	core.byte[registers[SP] + 1] = UPPER_W(registers[reg]);
+	//Copy PC register to reg
+	registers[reg] = registers[PC];
+	//Transfer control
+	registers[PC] = *ost;
+}
+
+/**
+ * Return from subroutine; copies contents of reg into pc and pops top of stack into reg
+ */
+void Processor::rts(RegCode reg) {
+	registers[PC] = reg;
+	registers[reg] = COMPOSE(core.byte[registers[SP] + 1], core.byte[registers[SP]]);
+	registers[SP] += 2;
+}
+
+/**
+ * Return from interrupt (or trap)
+ */
 void Processor::rti() {
-
+	registers[PC] = core.word[SP/2]; //TODO: check if this works... might be awkward if it doesn't, and it probably doesn't.
+	registers[SP] += 2;
+	ps = core.byte[SP];
+	registers[SP] += 2;
 }
 
-void Processor::trap() {
-
+/**
+ * Trap
+ * @param n From
+ */
+void Processor::trap(PWORD n) {
+	registers[PC] -= 2;
+	registers[PC] = ps;
+	registers[PC] -= 2;
+	registers[SP] = registers[PC];
+	registers[PC] = n; //TODO: Check, this trap routine can't possibly be right
+	registers[PC] = n + (PWORD)2;
 }
 
-void Processor::bpt() {
-
+/**
+ * Breakpoint trap. Used by debuggers, not sure why it's supported here, but why not.
+ * Oh, by the way, it's identical to trap.
+ */
+void Processor::bpt(PWORD n) {
+	trap(n);
 }
 
+/**
+ * I/O trap, used by OS for I/O calls. Really just trap(020) in disguise.
+ */
 void Processor::iot() {
-
+	trap(020);
 }
 
+/**
+ * Emulator trap, used by the OS to implement fake operations. Really just trap(030) in disguise.
+ */
 void Processor::emt() {
-
+	trap(030);
 }
 
+/**
+ * Return from trace trap. Same as RTI, but suppresses the trace trap (?!) that follows. Really just
+ * RTI in disguise, at this point I'm pretty sure the instruction set reference manual is playing
+ * tricks on me.
+ */
 void Processor::rtt() {
-
+	rti();
 }
 
-void Processor::spl(PWORD *lvl) {
-
+/**
+ * Set priority level. Sets bits 7-5 of the psw to lvl
+ * @param lvl Level to set
+ */
+void Processor::spl(PBYTE* lvl) {
+	ps = (*lvl << 4) | (ps * (PBYTE)0b11111);
 }
 
 /**
@@ -544,20 +783,30 @@ void Processor::scc() {
 }
 
 /**
+ * Determine if an overflow happened using two operands and the result of the operation
+ * @param o1 Operand 1
+ * @param o2 Operand 2
+ * @param res Result of operation using given operands
+ * @return True if overflow, false otherwise
+ */
+bool Processor::overflow(PWORD o1, PWORD o2, PWORD res) {
+	if (!(NEG_BIT & o1) && !(NEG_BIT & o2) && (NEG_BIT & res))
+		return true;
+	else if ((NEG_BIT & o1) && (NEG_BIT & o2) && !(NEG_BIT & res))
+		return true;
+	return false;
+}
+
+/**
  * Use value scheme to set status word flags
  * @param o1 First argument
  * @param o2 Second argument
  * @param res Result of operation
  */
 void Processor::valFlags(PWORD o1, PWORD o2, PWORD res) {
-	res & NEG_BIT	? sen() : cln();
-	res == 0		? sez() : clz();
-	if (!(NEG_BIT & o1) && !(NEG_BIT & o2) && (NEG_BIT & res))
-		sev();
-	else if ((NEG_BIT & o1) && (NEG_BIT & o2) && !(NEG_BIT & res))
-		sev();
-	else
-		clv();
+	res & NEG_BIT			? sen() : cln();
+	res == 0				? sez() : clz();
+	overflow(o1, o2, res)	? sev() : clv();
 }
 
 /**
