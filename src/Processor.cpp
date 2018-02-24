@@ -1,6 +1,7 @@
 #include <cstring>
 #include "Processor.h"
 
+
 /**
  * Create a new CPU object with all zero data. Will create a 32KB core by default.
  */
@@ -354,10 +355,12 @@ void Processor::div(const RegCode reg, const PWORD *o2) {
  */
 void Processor::ash(const RegCode reg, const PWORD *o2) {
 	//Convert this into something we can work with, then shift by it
-	//TODO clean, this is gross
 	PWORD prev = registers[reg];
-	PWORD conv = (*o2 & (PWORD)0x1F) | ((*o2 & (PWORD)20) << (PWORD)10);
-	registers[reg] <<= conv;
+	SPWORD conv = (*o2 & (SPWORD)0x1F) | ((*o2 & 0x20) ? (SPWORD)0xFFE0 : (SPWORD)0); //extend sign bit, lazily
+	if (conv < 0)
+		registers[reg] >>= -conv;
+	else
+		registers[reg] <<= conv;
 	if (registers[reg] & NEG_BIT != prev & NEG_BIT)
 		sev();
 	//TODO FOR THE LOVE OF CTHULHU TEST THIS

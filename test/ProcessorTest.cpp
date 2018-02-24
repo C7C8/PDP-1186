@@ -178,3 +178,42 @@ TEST(processor_test, one_arg_instructions){
 	ASSERT_EQ(o1, 0);
 	ASSERT_TRUE(proc.pstat_zero());
 }
+
+TEST(processor_test, one_half_arg_instructions){
+	Processor proc;
+	PWORD o1 = 5;
+	proc.reg(R0, o1);
+
+	//mul
+	ASSERT_EQ(proc.reg(R0), 5);
+	proc.mul(R0, &o1);
+	ASSERT_EQ(proc.reg(R0), 25);
+	proc.mul(R0, &o1);
+	ASSERT_EQ(proc.reg(R0), 125);
+
+	//div
+	proc.div(R0, &o1);
+	ASSERT_EQ(proc.reg(R0), 25);
+	proc.div(R0, &o1);
+	ASSERT_EQ(proc.reg(R0), 5);
+	proc.div(R0, &o1);
+	ASSERT_EQ(proc.reg(R0), 1);
+
+	//ash
+	o1 = 15;
+	proc.reg(R0, 1);
+	proc.ash(R0, &o1);
+	ASSERT_EQ(proc.reg(R0), 1 << 15);
+	o1 = 0b110001; //two's complement for -15
+	proc.ash(R0, &o1);
+	ASSERT_EQ(proc.reg(R0), 1);
+
+	//xor_
+	o1 = 0xAAAA;
+	proc.reg(R0, 0x5555);
+	proc.xor_(R0, &o1);
+	ASSERT_EQ(proc.reg(R0), 0xFFFF);
+	proc.reg(R0, 0xAAAA);
+	proc.xor_(R0, &o1);
+	ASSERT_EQ(proc.reg(R0), 0);
+}
