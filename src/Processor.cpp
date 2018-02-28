@@ -318,7 +318,7 @@ void Processor::swab(const PWORD *o1) {
  * Sign extend; sets all bits to be the same as the code N. Z set by result.
  */
 void Processor::sxt(PWORD *o1) {
-	*o1 = (PWORD)(pstat_neg() ? 0xFFFF : 0x000);
+	*o1 = (PWORD)(pstat_neg() ? ~0x0000 : 0x000);
 	*o1 == 0 ? sez() : clz();
 }
 
@@ -404,6 +404,7 @@ void Processor::mov(const PWORD *o1, PWORD *o2) {
  * @param o2 dst
  */
 void Processor::add(const PWORD *o1, PWORD *o2) {
+	//TODO Double check that flags are set appropriately, esp. overflow
 	valFlags(*o1, *o2, *o2 + *o1);
 	*o2 += *o1;
 }
@@ -429,7 +430,7 @@ void Processor::cmp(const PWORD *o1, const PWORD *o2) {
 }
 
 /**
- * OR; dst = dst | src
+ * OR (bit set); dst = dst | src
  * @param o1 src
  * @param o2 dst
  */

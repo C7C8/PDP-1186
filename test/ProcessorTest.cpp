@@ -217,3 +217,73 @@ TEST(processor_test, one_half_arg_instructions){
 	proc.xor_(R0, &o1);
 	ASSERT_EQ(proc.reg(R0), 0);
 }
+
+TEST(processor_test, two_arg_instructions){
+	PWORD o1 = 1, o2 = 5;
+	Processor proc;
+
+	//mov: move data
+	proc.mov(&o2, &o1);
+	ASSERT_EQ(o2, o1);
+	//o1=o2=5
+
+	//add
+	proc.add(&o1, &o2);
+	ASSERT_EQ(o2, o1 * 2);
+	o1 = 5;
+	o2 = 10;
+
+	//sub
+	proc.sub(&o1, &o2);
+	ASSERT_EQ(o2, o1);
+	proc.sub(&o1, &o2);
+	proc.sub(&o1, &o2); // force negative
+	ASSERT_TRUE(proc.pstat_neg());
+	o1 = 5;
+	o2 = 5;
+
+	//cmp: compare by performing src - dest, but discard the result
+	proc.cmp(&o1, &o2);
+	ASSERT_FALSE(proc.pstat_neg());
+	ASSERT_FALSE(proc.pstat_overf());
+	ASSERT_FALSE(proc.pstat_carry());
+	ASSERT_TRUE(proc.pstat_zero());
+	o1 = 10;
+	proc.cmp(&o1, &o2);
+	ASSERT_FALSE(proc.pstat_neg());
+	ASSERT_FALSE(proc.pstat_zero());
+	o2 = 15;
+	proc.cmp(&o1, &o2);
+	ASSERT_TRUE(proc.pstat_neg());
+	ASSERT_FALSE(proc.pstat_zero());
+
+	//bis: bitwise OR
+	o1 = 0xFF00;
+	o2 = 0x00FF;
+	proc.bis(&o1, &o2);
+	ASSERT_EQ(o2, 0xFFFF);
+	o2 = 0xFF00;
+	proc.bis(&o1, &o2);
+	ASSERT_EQ(o2, 0xFF00);
+
+	//bic: bitwise AND
+	o1 = 0xFF00;
+	o2 = 0xFF00;
+	proc.bic(&o1, &o2);
+	ASSERT_EQ(o2, 0xFF00);
+	ASSERT_FALSE(proc.pstat_zero()); //why not
+	o2 = 0x00FF;
+	proc.bic(&o1, &o2);
+	ASSERT_EQ(o2, 0);
+	ASSERT_TRUE(proc.pstat_zero());
+
+	//bit: bitwise test, compute bitwise AND but only set flags. Basically the same test series as before.
+	o1 = 0xFF00;
+	o2 = 0xFF00;
+	proc.bit(&o1, &o2);
+	ASSERT_FALSE(proc.pstat_zero()); //why not
+	o2 = 0x00FF;
+	proc.bit(&o1, &o2);
+	ASSERT_TRUE(proc.pstat_zero());
+	ASSERT_FALSE(proc.pstat_neg());
+}
